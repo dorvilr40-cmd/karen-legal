@@ -10,37 +10,76 @@ nav{font-size:.9rem;margin-bottom:24px}nav a{margin-right:16px}
 .btn:hover{background:#222}.card{border:1px solid #ddd;border-radius:12px;padding:20px;margin:24px 0}
 .muted{color:#666;font-size:.9rem}.code{display:block;word-break:break-all;background:#f2f2f2;padding:12px;border-radius:8px;font:14px/1.4 ui-monospace,Menlo,monospace}
 @media (prefers-color-scheme:dark){.btn{background:#fff;color:#000}.btn:hover{background:#ddd}.card{border-color:#333}.muted{color:#aaa}.code{background:#2a2a2a}}
+</style><style>
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin:16px 0 28px}
+.tile{background:#f6f6f6;border-radius:12px;padding:14px}.tile .v{font-size:1.4rem;font-weight:700;font-variant-numeric:tabular-nums}
+.tile .l{color:#666;font-size:.85rem}.who{display:flex;align-items:center;gap:14px;margin:8px 0}
+.who img{width:56px;height:56px;border-radius:50%;object-fit:cover}.tag{font-size:.75rem;color:#666}
+.wrap{overflow-x:auto}table{width:100%;border-collapse:collapse;min-width:640px}
+th,td{padding:8px;border-bottom:1px solid #e5e5e5;text-align:left;vertical-align:middle}th{font-size:.8rem;color:#666}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}td img{width:44px;height:58px;object-fit:cover;border-radius:6px;display:block}
+@media (prefers-color-scheme:dark){.tile{background:#1e1e1e}.tile .l,.tag,th{color:#aaa}th,td{border-color:#2c2c2c}}
 </style></head>
 <body><main><nav><a href="./">Karen Analytics</a><a href="terms.html">Terms of Service</a><a href="privacy.html">Privacy Policy</a></nav>
 <h1 id="title">Connecting…</h1>
+<p class="muted" id="status">Loading your TikTok stats…</p>
+<div id="dash" hidden>
+  <div class="who"><img id="avatar" alt=""><div><strong id="name"></strong><div class="tag">Account (user.info.basic)</div></div></div>
+  <div class="tag">Account stats (user.info.stats)</div>
+  <div class="tiles" id="tiles"></div>
+  <h2 id="vtitle">Videos</h2><div class="tag">Public videos (video.list)</div>
+  <div class="wrap"><table><thead><tr><th></th><th>Video</th><th>Posted</th><th class="n">Views</th><th class="n">Likes</th><th class="n">Comments</th><th class="n">Shares</th></tr></thead><tbody id="rows"></tbody></table></div>
+</div>
 <div id="ok" hidden>
 <p>Your TikTok account was authorized. Copy the authorization code below and paste it into Karen Analytics to load your stats.</p>
 <span class="code" id="code"></span>
 <p><button class="btn" id="copy">Copy code</button> <span class="muted" id="copied"></span></p>
-<p class="muted">The code is valid for a few minutes and can only be used once.</p>
 </div>
 <div id="err" hidden><p id="errmsg"></p><p><a href="./">Back to Karen Analytics</a></p></div>
 <script>
 const q=new URLSearchParams(location.search);
 const code=q.get("code"),state=q.get("state"),error=q.get("error");
 let saved=null;try{saved=sessionStorage.getItem("tt_state");}catch(e){}
-const title=document.getElementById("title");
+const $=id=>document.getElementById(id);
+const fmt=n=>typeof n==="number"?n.toLocaleString("en-US"):"–";
+function fail(t,m){$("title").textContent=t;$("status").hidden=true;$("errmsg").textContent=m;$("err").hidden=false;}
+function showCode(){
+  $("title").textContent="TikTok account connected";$("status").hidden=true;
+  $("code").textContent=code;$("ok").hidden=false;
+  $("copy").addEventListener("click",async()=>{try{await navigator.clipboard.writeText(code);$("copied").textContent="Copied";}catch(e){$("copied").textContent="Select the code and copy it manually";}});
+}
+function render(d){
+  const u=d.user||{},v=d.videos||[];
+  $("title").textContent="Your TikTok stats";$("status").textContent="Updated "+d.fetched_at;
+  $("avatar").src=u.avatar_url||"";$("name").textContent=u.display_name||"";
+  for(const [l,n] of [["Followers",u.follower_count],["Following",u.following_count],["Likes",u.likes_count],["Videos",u.video_count]]){
+    const t=document.createElement("div");t.className="tile";
+    const a=document.createElement("div");a.className="v";a.textContent=fmt(n);
+    const b=document.createElement("div");b.className="l";b.textContent=l;t.append(a,b);$("tiles").append(t);
+  }
+  $("vtitle").textContent="Videos ("+v.length+")";
+  v.sort((a,b)=>(b.create_time||0)-(a.create_time||0));
+  if(!v.length){const tr=document.createElement("tr");const td=document.createElement("td");td.colSpan=7;td.textContent="No public videos yet.";tr.append(td);$("rows").append(tr);}
+  for(const x of v){
+    const tr=document.createElement("tr");
+    const c0=document.createElement("td");const a=document.createElement("a");a.href=x.share_url||"#";a.target="_blank";a.rel="noopener";
+    const img=document.createElement("img");img.src=x.cover_image_url||"";img.alt="";a.append(img);c0.append(a);tr.append(c0);
+    const cells=[(x.title||x.video_description||"(untitled)").slice(0,90),new Date((x.create_time||0)*1000).toISOString().slice(0,10),fmt(x.view_count),fmt(x.like_count),fmt(x.comment_count),fmt(x.share_count)];
+    cells.forEach((val,i)=>{const td=document.createElement("td");if(i>1)td.className="n";td.textContent=val;tr.append(td);});
+    $("rows").append(tr);
+  }
+  $("dash").hidden=false;
+}
 if(error||!code){
-  title.textContent="Authorization not completed";
-  document.getElementById("errmsg").textContent=error?("TikTok returned: "+error+(q.get("error_description")?" – "+q.get("error_description"):"")):"No authorization code was received.";
-  document.getElementById("err").hidden=false;
+  fail("Authorization not completed",error?("TikTok returned: "+error+(q.get("error_description")?" – "+q.get("error_description"):"")):"No authorization code was received.");
 }else if(saved&&state!==saved){
-  title.textContent="Security check failed";
-  document.getElementById("errmsg").textContent="The request state does not match. Please start again from the home page.";
-  document.getElementById("err").hidden=false;
+  fail("Security check failed","The request state does not match. Please start again from the home page.");
 }else{
-  title.textContent="TikTok account connected";
-  document.getElementById("code").textContent=code;
-  document.getElementById("ok").hidden=false;
-  document.getElementById("copy").addEventListener("click",async()=>{
-    try{await navigator.clipboard.writeText(code);document.getElementById("copied").textContent="Copied";}
-    catch(e){document.getElementById("copied").textContent="Select the code and copy it manually";}
-  });
+  $("title").textContent="TikTok account connected";
+  fetch("http://127.0.0.1:8765/api/connect?code="+encodeURIComponent(code))
+    .then(r=>r.json().then(j=>({ok:r.ok,j})))
+    .then(({ok,j})=>{if(ok)render(j);else fail("Could not load stats",j.error||"Unknown error");})
+    .catch(()=>showCode());
 }
 </script>
 </main></body></html>
