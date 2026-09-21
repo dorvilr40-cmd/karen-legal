@@ -5,10 +5,29 @@ main{max-width:720px;margin:0 auto;padding:40px 16px 64px}
 h1{font-size:1.8rem;line-height:1.25;margin:0 0 8px}h2{font-size:1.15rem;margin:32px 0 8px}
 code{background:#f2f2f2;padding:1px 5px;border-radius:4px;font-size:.9em}a{color:#0b57d0}
 nav{font-size:.9rem;margin-bottom:24px}nav a{margin-right:16px}
-@media (prefers-color-scheme:dark){body{background:#121212;color:#e8e8e8}code{background:#2a2a2a}a{color:#8ab4f8}}</style></head>
+@media (prefers-color-scheme:dark){body{background:#121212;color:#e8e8e8}code{background:#2a2a2a}a{color:#8ab4f8}}</style><style>
+.btn{display:inline-flex;align-items:center;gap:10px;background:#000;color:#fff;border:0;border-radius:8px;padding:12px 20px;font:600 16px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;cursor:pointer;text-decoration:none}
+.btn:hover{background:#222}.card{border:1px solid #ddd;border-radius:12px;padding:20px;margin:24px 0}
+.muted{color:#666;font-size:.9rem}.code{display:block;word-break:break-all;background:#f2f2f2;padding:12px;border-radius:8px;font:14px/1.4 ui-monospace,Menlo,monospace}
+@media (prefers-color-scheme:dark){.btn{background:#fff;color:#000}.btn:hover{background:#ddd}.card{border-color:#333}.muted{color:#aaa}.code{background:#2a2a2a}}
+</style></head>
 <body><main><nav><a href="./">Karen Analytics</a><a href="terms.html">Terms of Service</a><a href="privacy.html">Privacy Policy</a></nav>
 <h1>Karen Analytics</h1>
-<p>Internal content analytics tool for our own TikTok accounts.</p>
-<ul><li><a href="terms.html">Terms of Service</a></li><li><a href="privacy.html">Privacy Policy</a></li></ul>
+<p>Track your TikTok video performance in one place to see what works and plan better content.</p>
+<div class="card">
+<p>Connect your TikTok account to see your account stats and the performance of your public videos (views, likes, comments and shares).</p>
+<button class="btn" id="connect">Continue with TikTok</button>
+<p class="muted">You will be asked to approve read-only access to your basic profile, account stats and public videos. You can revoke access at any time in TikTok settings.</p>
+</div>
 <p>Contact: <a href="mailto:dorvilr36@gmail.com">dorvilr36@gmail.com</a></p>
+<script>
+const CLIENT_KEY="sbawugsckau75mc5or";
+const REDIRECT_URI="https://dorvilr40-cmd.github.io/karen-legal/callback.html";
+document.getElementById("connect").addEventListener("click",()=>{
+  const state=Array.from(crypto.getRandomValues(new Uint8Array(16)),b=>b.toString(16).padStart(2,"0")).join("");
+  try{sessionStorage.setItem("tt_state",state);}catch(e){}
+  const p=new URLSearchParams({client_key:CLIENT_KEY,scope:"user.info.basic,user.info.stats,video.list",response_type:"code",redirect_uri:REDIRECT_URI,state});
+  location.href="https://www.tiktok.com/v2/auth/authorize/?"+p.toString();
+});
+</script>
 </main></body></html>
